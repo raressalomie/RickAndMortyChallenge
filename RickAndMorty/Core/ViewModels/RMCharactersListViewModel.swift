@@ -9,11 +9,39 @@ import SwiftUI
 
 @Observable
 class RMCharactersListViewModel {    
-    var characters: [RMCharacter] = []
+    private var allCharacters: [RMCharacter] = []
+    private var characters: [RMCharacter] = []
     var isLoading = false
+    var searchText: String = ""
     private var nextCharactersUrl: String?
     private var canLoadMore = false
     private let dataService = RMCharactersDataService()
+    var statusSelection = RMStatus.all
+    var filteredCharacters: [RMCharacter] {
+        filterCharacters(by: statusSelection)
+        return searchCharacters(for: searchText)
+    }
+    
+    func filterCharacters(by status: RMStatus){
+        characters = allCharacters
+        if status == .all {
+            return 
+        } else {
+            characters = characters.filter { character in
+                character.status == status
+            }
+        }
+    }
+    
+    func searchCharacters(for searchTerm: String) -> [RMCharacter] {
+        if searchTerm.isEmpty {
+            return characters
+        } else {
+            return characters.filter { character in
+                character.name.localizedStandardContains(searchTerm)
+            }
+        }
+    }
     
     func fetchCharacters() async {
         guard !isLoading else { return }
@@ -29,7 +57,8 @@ class RMCharactersListViewModel {
                 response = try await dataService.fetchCharacters()
                 print("Characters loaded")
             }
-            characters.append(contentsOf: response.results)
+            allCharacters.append(contentsOf: response.results)
+            characters = allCharacters
             if response.info.next != nil {
                 canLoadMore = true
                 print("Can load more characters")
